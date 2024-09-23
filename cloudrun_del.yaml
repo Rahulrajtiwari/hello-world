@@ -39,6 +39,9 @@ substitutions:
   _REGION: 'your-region'
   _ENVIRONMENT: 'your-environment'  # Can be "prod" or other environment
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 # Set timeout (optional)
 timeout: 600s
 
