@@ -7,6 +7,9 @@ substitutions:
   _REGION: 'us-central1'  # Default region, can be overridden
   _ENVIRONMENT: 'dev'  # Default environment, e.g., 'dev', 'staging', 'prod'
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 # Timeout in seconds for the build to complete
 timeout: 600s
 
