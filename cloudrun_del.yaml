@@ -2,10 +2,10 @@
 
 # Substitutions section allows for dynamic values at runtime
 substitutions:
-  _TARGET_PROJECT_ID: 'your-project-id'  # Default value, can be overridden
-  _SERVICE_NAME: 'your-cloud-run-service'  # Default value, can be overridden
+  _TARGET_PROJECT_ID: ''  # Default value, can be overridden
+  _SERVICE_NAME: ''  # Default value, can be overridden
   _REGION: 'us-central1'  # Default region, can be overridden
-  _ENVIRONMENT: 'dev'  # Default environment, e.g., 'dev', 'staging', 'prod'
+  _ENVIRONMENT: ''  # Default environment, e.g., 'dev', 'staging', 'prod'
 
 options:
   logging: CLOUD_LOGGING_ONLY
