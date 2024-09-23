@@ -65,7 +65,7 @@ steps:
             exit 1  # Fail the build if deletion fails
           fi
         else
-          echo "No further action needed for non-production environments."
+          echo "Successfully deleted Cloud Run service: $_SERVICE_NAME from project: $_TARGET_PROJECT_ID. No further action needed for non-production environments."
         fi
 
 substitutions:
