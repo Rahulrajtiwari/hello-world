@@ -65,4 +65,7 @@ substitutions:
   _SERVICE_NAME: ''
   _REGION: ''
   _ENVIRONMENT: ''
+
+options:
+  logging: CLOUD_LOGGING_ONLY
 timeout: 600s
