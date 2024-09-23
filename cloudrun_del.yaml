@@ -1,0 +1,41 @@
+# Cloud Build configuration to delete a Cloud Run service based on project, environment, and service name
+
+# Substitutions section allows for dynamic values at runtime
+substitutions:
+  _TARGET_PROJECT_ID: 'your-project-id'  # Default value, can be overridden
+  _SERVICE_NAME: 'your-cloud-run-service'  # Default value, can be overridden
+  _REGION: 'us-central1'  # Default region, can be overridden
+  _ENVIRONMENT: 'dev'  # Default environment, e.g., 'dev', 'staging', 'prod'
+
+# Timeout in seconds for the build to complete
+timeout: 600s
+
+# Define build steps
+steps:
+  # Step 1: Delete Cloud Run Service
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Check if all required environment variables are set
+        if [[ -z "$_TARGET_PROJECT_ID" || -z "$_SERVICE_NAME" || -z "$_REGION" || -z "$_ENVIRONMENT" ]]; then
+          echo "Error: Required variables TARGET_PROJECT_ID, SERVICE_NAME, REGION, and ENVIRONMENT are not set."
+          exit 1
+        fi
+
+        echo "Deleting Cloud Run service: $_SERVICE_NAME in $_REGION for environment: $_ENVIRONMENT in project: $_TARGET_PROJECT_ID..."
+
+        # Delete the Cloud Run service
+        gcloud run services delete "$_SERVICE_NAME" \
+          --platform managed \
+          --region "$_REGION" \
+          --project "$_TARGET_PROJECT_ID" \
+          --quiet
+
+        echo "Successfully deleted Cloud Run service: $_SERVICE_NAME from project: $_TARGET_PROJECT_ID in environment: $_ENVIRONMENT."
+
+# Optional logging or notification step (e.g., using Slack or another service) can be added if needed
+
+# Example trigger (optional if you'd like to set up an automated trigger for this build)
+# Define a manual trigger for this Cloud Build pipeline in the GCP console if not using gcloud CLI to trigger it
