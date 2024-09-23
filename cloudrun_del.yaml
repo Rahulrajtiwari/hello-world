@@ -1,53 +1,68 @@
 steps:
-- name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - |
-      # Check if required environment variables are set
-      if [[ -z "$_TARGET_PROJECT_ID" || -z "$_SERVICE_NAME" || -z "$_REGION" || -z "$_ENVIRONMENT" ]]; then
-        echo "Error: TARGET_PROJECT_ID, SERVICE_NAME, REGION, and ENVIRONMENT must be provided."
-        exit 1
-      fi
-
-      # Check for production environment and require approval
-      if [[ "$_ENVIRONMENT" == "prod" ]]; then
-        echo "Approval required for production environment."
-        # Implement your approval mechanism here (e.g., manual approval step)
-        # Set _APPROVAL_RECEIVED to "true" if approved
-        if [[ -z "$_APPROVAL_RECEIVED" || "$_APPROVAL_RECEIVED" != "true" ]]; then
-          echo "Deletion not approved. Exiting."
-          exit 0
+  # Step to check environment and potentially delete service
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Check if required environment variables are set
+        if [[ -z "$_TARGET_PROJECT_ID" || -z "$_SERVICE_NAME" || -z "$_REGION" || -z "$_ENVIRONMENT" ]]; then
+          echo "Error: TARGET_PROJECT_ID, SERVICE_NAME, REGION, and ENVIRONMENT must be provided."
+          exit 1
         fi
-      fi
 
-      echo "Deleting Cloud Run service: $_SERVICE_NAME in $_REGION for environment: $_ENVIRONMENT in project: $_TARGET_PROJECT_ID..."
+        echo "Checking environment for approval..."
+        
+        if [[ "$_ENVIRONMENT" == "prod" ]]; then
+          echo "Approval required for production environment."
+          exit 0  # Pause here for approval
+        fi
 
-      # Delete Cloud Run service (only if approved for production)
-      gcloud run services delete "$_SERVICE_NAME" \
-        --platform managed \
-        --region "$_REGION" \
-        --project "$_TARGET_PROJECT_ID" \
-        --quiet
+        echo "Deleting Cloud Run service: $_SERVICE_NAME in $_REGION for environment: $_ENVIRONMENT in project: $_TARGET_PROJECT_ID..."
 
-      echo "Successfully deleted Cloud Run service: $_SERVICE_NAME from project: $_TARGET_PROJECT_ID in environment: $_ENVIRONMENT."
+        # Delete Cloud Run service from the specified project and environment
+        if gcloud run services delete "$_SERVICE_NAME" \
+          --platform managed \
+          --region "$_REGION" \
+          --project "$_TARGET_PROJECT_ID" \
+          --quiet; then
+          echo "Successfully deleted Cloud Run service: $_SERVICE_NAME from project: $_TARGET_PROJECT_ID in environment: $_ENVIRONMENT."
+        else
+          echo "Error: Failed to delete Cloud Run service: $_SERVICE_NAME"
+          exit 1  # Fail the build if deletion fails
+        fi
 
-# Define substitutions for your project details (replace with actual values)
+  # Approval stage
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Approval stage for production environment. Please approve to continue."
+
+  # Step to delete Cloud Run service after approval
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Continuing to delete Cloud Run service: $_SERVICE_NAME in $_REGION for environment: $_ENVIRONMENT in project: $_TARGET_PROJECT_ID..."
+
+        # Delete Cloud Run service from the specified project and environment
+        if gcloud run services delete "$_SERVICE_NAME" \
+          --platform managed \
+          --region "$_REGION" \
+          --project "$_TARGET_PROJECT_ID" \
+          --quiet; then
+          echo "Successfully deleted Cloud Run service: $_SERVICE_NAME from project: $_TARGET_PROJECT_ID in environment: $_ENVIRONMENT."
+        else
+          echo "Error: Failed to delete Cloud Run service: $_SERVICE_NAME"
+          exit 1  # Fail the build if deletion fails
+        fi
+
 substitutions:
-  _TARGET_PROJECT_ID: 'your-project-id'
-  _SERVICE_NAME: 'your-service-name'
-  _REGION: 'your-region'
-  _ENVIRONMENT: 'your-environment'  # Can be "prod" or other environment
-
-options:
-  logging: CLOUD_LOGGING_ONLY
-
-# Set timeout (optional)
+  _TARGET_PROJECT_ID: ''
+  _SERVICE_NAME: ''
+  _REGION: ''
+  _ENVIRONMENT: ''
 timeout: 600s
-
-# Optional: Add trigger (e.g., on push to a specific branch)
-# triggers:
-#   - kind: cloud-source-repository
-#     project: your-project-id
-#     repository: your-repository
-#     branch: your-branch
