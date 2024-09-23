@@ -1,0 +1,41 @@
+steps:
+  # Step to delete Cloud Run service
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Delete Cloud Run Service'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Check if required environment variables are set
+        if [[ -z "$_SERVICE_NAME" || -z "$_REGION" ]]; then
+          echo "Error: SERVICE_NAME and REGION must be provided."
+          exit 1
+        fi
+
+        # Automatically use the project ID from the Cloud Build environment
+        TARGET_PROJECT_ID=$PROJECT_ID
+
+        echo "Environment: ${_ENVIRONMENT:-dev}"
+
+        echo "Deleting Cloud Run service: $_SERVICE_NAME in $_REGION for environment: ${_ENVIRONMENT:-dev} in project: $TARGET_PROJECT_ID..."
+
+        # Delete Cloud Run service from the specified project and environment
+        if gcloud run services delete "$_SERVICE_NAME" \
+          --platform managed \
+          --region "$_REGION" \
+          --project "$TARGET_PROJECT_ID" \
+          --quiet; then
+          echo "Successfully deleted Cloud Run service: $_SERVICE_NAME from project: $TARGET_PROJECT_ID."
+        else
+          echo "Error: Failed to delete Cloud Run service: $_SERVICE_NAME"
+          exit 1  # Fail the build if deletion fails
+        fi
+
+substitutions:
+  _SERVICE_NAME: 'your-cloud-run-service'  # Must be provided
+  _REGION: 'us-central1'  # Must be provided
+  _ENVIRONMENT: 'dev'  # Optional, defaults to 'dev'
+timeout: 600s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
