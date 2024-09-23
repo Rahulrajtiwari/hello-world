@@ -11,11 +11,11 @@ steps:
           exit 1
         fi
 
-        echo "Checking environment for approval..."
-        
+        echo "Checking environment..."
+
         if [[ "$_ENVIRONMENT" == "prod" ]]; then
           echo "Approval required for production environment."
-          exit 0  # Pause here for approval
+          exit 0  # Stop the pipeline for approval
         fi
 
         echo "Deleting Cloud Run service: $_SERVICE_NAME in $_REGION for environment: $_ENVIRONMENT in project: $_TARGET_PROJECT_ID..."
@@ -26,19 +26,23 @@ steps:
           --region "$_REGION" \
           --project "$_TARGET_PROJECT_ID" \
           --quiet; then
-          echo "Successfully deleted Cloud Run service: $_SERVICE_NAME from project: $_TARGET_PROJECT_ID in environment: $_ENVIRONMENT."
+          echo "Successfully deleted Cloud Run service: $_SERVICE_NAME."
         else
           echo "Error: Failed to delete Cloud Run service: $_SERVICE_NAME"
           exit 1  # Fail the build if deletion fails
         fi
 
-  # Approval stage
+  # Conditional Approval Step
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Approval stage for production environment. Please approve to continue."
+        if [[ "$_ENVIRONMENT" == "prod" ]]; then
+          echo "Approval stage for production environment. Please approve to continue."
+          # Placeholder for approval logic; you could integrate with an external approval system or manual process.
+          exit 0  # Pause for approval
+        fi
 
   # Step to delete Cloud Run service after approval
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -46,18 +50,22 @@ steps:
     args:
       - '-c'
       - |
-        echo "Continuing to delete Cloud Run service: $_SERVICE_NAME in $_REGION for environment: $_ENVIRONMENT in project: $_TARGET_PROJECT_ID..."
+        if [[ "$_ENVIRONMENT" == "prod" ]]; then
+          echo "Continuing to delete Cloud Run service: $_SERVICE_NAME in $_REGION for environment: $_ENVIRONMENT in project: $_TARGET_PROJECT_ID..."
 
-        # Delete Cloud Run service from the specified project and environment
-        if gcloud run services delete "$_SERVICE_NAME" \
-          --platform managed \
-          --region "$_REGION" \
-          --project "$_TARGET_PROJECT_ID" \
-          --quiet; then
-          echo "Successfully deleted Cloud Run service: $_SERVICE_NAME from project: $_TARGET_PROJECT_ID in environment: $_ENVIRONMENT."
+          # Delete Cloud Run service from the specified project and environment
+          if gcloud run services delete "$_SERVICE_NAME" \
+            --platform managed \
+            --region "$_REGION" \
+            --project "$_TARGET_PROJECT_ID" \
+            --quiet; then
+            echo "Successfully deleted Cloud Run service: $_SERVICE_NAME from project: $_TARGET_PROJECT_ID."
+          else
+            echo "Error: Failed to delete Cloud Run service: $_SERVICE_NAME"
+            exit 1  # Fail the build if deletion fails
+          fi
         else
-          echo "Error: Failed to delete Cloud Run service: $_SERVICE_NAME"
-          exit 1  # Fail the build if deletion fails
+          echo "No further action needed for non-production environments."
         fi
 
 substitutions:
@@ -65,7 +73,7 @@ substitutions:
   _SERVICE_NAME: ''
   _REGION: ''
   _ENVIRONMENT: ''
+timeout: 600s
 
 options:
   logging: CLOUD_LOGGING_ONLY
-timeout: 600s
